@@ -1,15 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Hooksmith — Write. Shape. Release. The missing layer between your idea and Suno." />
-    <meta property="og:title" content="Hooksmith" />
-    <meta property="og:description" content="Write. Shape. Release. The missing layer between your idea and Suno." />
-    <title>Hooksmith — Write. Shape. Release.</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hooksmith — Write. Shape. Release.</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Lora:ital,wght@0,400;1,400&family=Cormorant+Garamond:ital,wght@1,400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080808; color: #d4d4d4; font-family: 'DM Mono', monospace; min-height: 100vh; }
+textarea, input, select { box-sizing: border-box; }
+textarea::placeholder, input::placeholder { color: #333; }
+select option { background: #0d0d0d; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const ANTHROPIC_PROXY = '/api/claude';
+
+const SIMPLE_GENRES = [
+  { id: "Ballad", label: "Ballad", icon: "\u2665", hint: "Tender, emotional, piano or strings" },
+  { id: "Pop", label: "Pop", icon: "\u25c9", hint: "Catchy, warm, anthemic" },
+  { id: "Folk", label: "Folk", icon: "\u25ce", hint: "Acoustic, gentle, storytelling" },
+  { id: "Country", label: "Country", icon: "\u27b6", hint: "Heartfelt, roots, open roads" },
+  { id: "Rock", label: "Rock", icon: "\u2593", hint: "From tender acoustic to powerful" },
+  { id: "Electronic", label: "Electronic", icon: "\u25c8", hint: "Modern, atmospheric, beats" },
+  { id: "Hip-Hop", label: "Hip-Hop", icon: "\u2295", hint: "Spoken from the heart, rhythmic" },
+  { id: "Cinematic", label: "Cinematic", icon: "\u2298", hint: "Something different, unique, yours" },
+];
+
+const SIMPLE_MOODS = [
+  { id: "Dark", color: "#8a7ec8" },
+  { id: "Warm", color: "#c8956e" },
+  { id: "Euphoric", color: "#c8c86e" },
+  { id: "Melancholic", color: "#7a9e8a" },
+  { id: "Raw", color: "#c8a96e" },
+];
+
+const VOCALS = ["Female", "Male", "Duo", "Instrumental"];
+
+let state = {
+  title: "", theme: "", genre: null, mood: null, vocal: null,
+  seed: "", seedRole: null, deepOpen: false, songOpen: false,
+  lyrics: { verse: "", prechorus: "", chorus: "", bridge: "", outro: "" },
+  generatedPrompt: "", loading: false, copied: false,
+  seedResult: null, seedBuilding: false,
+  history: [], myPrompts: [],
+  showHistory: false, showMine: false,
+};
+
+try { const h = localStorage.getItem("hs-history"); if (h) state.history = JSON.parse(h); } catch {}
+try { const p = localStorage.getItem("hs-prompts"); if (p) state.myPrompts = JSON.parse(p); } catch {}
+
+function saveHistory() { try { localStorage.setItem("hs-history", JSON.stringify(state.history.slice(0,50))); } catch {} }
+function savePrompts() { try { localStorage.setItem("hs-prompts", JSON.stringify(state.myPrompts)); } catch {} }
+
+function setState(updates) {
+  Object.assign(state, updates);
+  render();
+}
+
+function el(tag, attrs, ...children) {
+  const e = document.createElement(tag);
+  if (attrs) {
+    Object.entries(attrs).forEach(([k, v]) => {
+      if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+      else if (k.startsWith('on')) e[k.toLowerCase()] = v;
+      else if (k === 'className') e.className = v;
+      else e.setAttribute(k, v);
+    });
+  }
+  children.flat().forEach(c => {
+    if (c == null || c === false) return;
+    e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+async function generatePrompt() {
+  if (state.loading) return;
+  setState({ loading: true, generatedPrompt: "" });
+  const genre = state.genre || "unspecified";
+  const mood = state.mood || "unspecified";
+  const vocal = state.vocal ? state.vocal + " vocal" : "unspecified";
+  const seedText = state.seed ? `\n\nSeed line (treat as sacred, build around it): "${state.seed}"` : "";
+  const lyricsText = Object.entries(state.lyrics).filter(([,v]) => v.trim()).map(([k,v]) => `[${k}]\n${v}`).join("\n\n");
+
+  try {
+    const res = await fetch(ANTHROPIC_PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: "You are an expert Suno AI prompt writer. Output ONLY the prompt text, no preamble. Stay under 950 characters. No artist names. Map the full production arc. End with vocal descriptor.",
+        messages: [{ role: "user", content: `Generate a Suno prompt for:\nTitle: ${state.title || "Untitled"}\nGenre: ${genre}\nMood: ${mood}\nVocal: ${vocal}\nTheme: ${state.theme || "none"}${seedText}${lyricsText ? "\n\nLyrics:\n" + lyricsText : ""}` }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content?.[0]?.text || "Error generating prompt").trim();
+    const entry = { id: Date.now(), title: state.title || "Untitled", genre, mood, vocal, prompt: text, rating: 0, savedAt: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }) };
+    state.history = [entry, ...state.history].slice(0, 50);
+    saveHistory();
+    setState({ loading: false, generatedPrompt: text });
+  } catch(e) {
+    setState({ loading: false, generatedPrompt: "Error. Please try again." });
+  }
+}
+
+async function buildAroundSeed() {
+  if (!state.seed.trim() || state.seedBuilding) return;
+  setState({ seedBuilding: true, seedResult: null });
+  try {
+    const res = await fetch(ANTHROPIC_PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: "You are a skilled co-writer. The seed line is sacred — never rewrite it. Build the rest of the song around it. Use section labels [Verse], [Chorus], [Bridge] etc. 2-4 lines per section. End with one sentence explaining the emotional logic.",
+        messages: [{ role: "user", content: `My seed line: "${state.seed}"\nThis feels like my: ${state.seedRole || "unknown"}\nGenre: ${state.genre || "unspecified"}\nMood: ${state.mood || "unspecified"}\nTheme: ${state.theme || "none"}\n\nBuild the rest of the song around my line.` }]
+      })
+    });
+    const data = await res.json();
+    const text = (data.content?.[0]?.text || "Error").trim();
+    setState({ seedBuilding: false, seedResult: text });
+  } catch {
+    setState({ seedBuilding: false, seedResult: "Error. Please try again." });
+  }
+}
+
+function applyToSong(text) {
+  const secs = { verse: "", prechorus: "", chorus: "", bridge: "", outro: "" };
+  let cur = null;
+  for (const line of text.split("\n")) {
+    const l = line.toLowerCase();
+    if (l.includes("[verse]")) { cur = "verse"; continue; }
+    if (l.includes("[pre-chorus]") || l.includes("[prechorus]")) { cur = "prechorus"; continue; }
+    if (l.includes("[chorus]")) { cur = "chorus"; continue; }
+    if (l.includes("[bridge]")) { cur = "bridge"; continue; }
+    if (l.includes("[outro]")) { cur = "outro"; continue; }
+    if (cur && line.trim()) secs[cur] += (secs[cur] ? "\n" : "") + line;
+  }
+  const newLyrics = { ...state.lyrics };
+  Object.entries(secs).forEach(([k, v]) => { if (v.trim() && !newLyrics[k]) newLyrics[k] = v.trim(); });
+  setState({ lyrics: newLyrics });
+}
+
+function render() {
+  const app = document.getElementById("app");
+  if (!app) return;
+
+  const s = (styles) => styles;
+
+  // Header
+  const header = el("div", { style: s({ borderBottom: "1px solid #0f0f0f", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#050505" }) },
+    el("div", { style: { lineHeight: 1 } },
+      el("div", { style: { fontSize: "20px", fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "#c8a96e" } }, "Hooksmith"),
+      el("div", { style: { fontSize: "8px", letterSpacing: "0.22em", color: "#2e2e2e", marginTop: "3px" } }, "WRITE. SHAPE. RELEASE.")
+    ),
+    el("div", { style: { display: "flex", gap: "12px" } },
+      el("button", { style: { background: "none", border: "none", color: state.showHistory ? "#c8a96e" : "#333", fontSize: "10px", cursor: "pointer", fontFamily: "'DM Mono', monospace", letterSpacing: "0.1em" }, onclick: () => setState({ showHistory: !state.showHistory, showMine: false }) }, `HISTORY${state.history.length > 0 ? " (" + state.history.length + ")" : ""}`),
+      el("button", { style: { background: "none", border: "none", color: state.showMine ? "#c8a96e" : "#333", fontSize: "10px", cursor: "pointer", fontFamily: "'DM Mono', monospace", letterSpacing: "0.1em" }, onclick: () => setState({ showMine: !state.showMine, showHistory: false }) }, `MY PROMPTS${state.myPrompts.length > 0 ? " (" + state.myPrompts.length + ")" : ""}`)
+    )
+  );
+
+  const main = el("div", { style: { maxWidth: "680px", margin: "0 auto", padding: "36px 20px 60px" } });
+
+  // Genre grid
+  const genreGrid = el("div", null,
+    el("div", { style: { fontSize: "9px", color: "#444", letterSpacing: "0.15em", marginBottom: "12px" } }, "GENRE"),
+    el("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", marginBottom: "24px" } },
+      ...SIMPLE_GENRES.map(g =>
+        el("button", {
+          style: { background: state.genre === g.id ? "#0f0f0c" : "#0a0a0a", border: state.genre === g.id ? "1px solid #c8a96e" : "1px solid #161616", padding: "12px 10px", cursor: "pointer", textAlign: "left", transition: "all 0.15s" },
+          onclick: () => setState({ genre: state.genre === g.id ? null : g.id })
+        },
+          el("div", { style: { fontSize: "16px", color: state.genre === g.id ? "#c8a96e" : "#2e2e2e", marginBottom: "4px" } }, g.icon),
+          el("div", { style: { fontSize: "12px", color: state.genre === g.id ? "#c8a96e" : "#666", fontFamily: "'DM Mono', monospace", marginBottom: "2px" } }, g.label),
+          el("div", { style: { fontSize: "9px", color: "#2a2a2a", lineHeight: "1.3" } }, g.hint)
+        )
+      )
+    )
+  );
+
+  // Mood pills
+  const moodRow = el("div", null,
+    el("div", { style: { fontSize: "9px", color: "#444", letterSpacing: "0.15em", marginBottom: "12px" } }, "MOOD"),
+    el("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" } },
+      ...SIMPLE_MOODS.map(m =>
+        el("button", {
+          style: { padding: "8px 20px", border: state.mood === m.id ? `1px solid ${m.color}` : "1px solid #1e1e1e", background: state.mood === m.id ? m.color + "18" : "transparent", color: state.mood === m.id ? m.color : "#444", fontSize: "12px", fontFamily: "'DM Mono', monospace", cursor: "pointer", transition: "all 0.15s", opacity: state.mood && state.mood !== m.id ? 0.4 : 1 },
+          onclick: () => setState({ mood: state.mood === m.id ? null : m.id })
+        }, m.id)
+      )
+    )
+  );
+
+  // Vocal
+  const vocalRow = el("div", null,
+    el("div", { style: { fontSize: "9px", color: "#444", letterSpacing: "0.15em", marginBottom: "12px" } }, "VOCAL"),
+    el("div", { style: { display: "flex", gap: "6px", marginBottom: "32px" } },
+      ...VOCALS.map(v =>
+        el("button", {
+          style: { flex: 1, padding: "9px 8px", border: state.vocal === v ? "1px solid #c8956e" : "1px solid #1e1e1e", background: state.vocal === v ? "#c8956e18" : "transparent", color: state.vocal === v ? "#c8956e" : "#444", fontSize: "11px", fontFamily: "'DM Mono', monospace", cursor: "pointer", transition: "all 0.15s" },
+          onclick: () => setState({ vocal: state.vocal === v ? null : v })
+        }, v)
+      )
+    )
+  );
+
+  // Title input
+  const titleInput = el("input", { type: "text", placeholder: "What do you want to call it? (optional)", value: state.title, style: { width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #1a1a1a", color: "#ccc", padding: "12px 0", fontSize: "18px", fontFamily: "'Lora', serif", outline: "none", marginBottom: "16px" }, oninput: (e) => { state.title = e.target.value; } });
+
+  // Theme input
+  const themeInput = el("textarea", { placeholder: "Who is it for? What do you want to say to them? (optional)", rows: 2, style: { width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #1a1a1a", color: "#888", padding: "8px 0", fontSize: "15px", fontFamily: "'Lora', serif", resize: "none", outline: "none", marginBottom: "28px" }, oninput: (e) => { state.theme = e.target.value; } }, state.theme);
+
+  // Build your song toggle
+  const songToggle = el("button", {
+    style: { background: "none", border: "none", color: state.songOpen ? "#9a8aee" : "#383838", fontSize: "10px", cursor: "pointer", fontFamily: "'DM Mono', monospace", letterSpacing: "0.15em", display: "flex", alignItems: "center", gap: "8px", marginBottom: "28px", padding: 0 },
+    onclick: () => setState({ songOpen: !state.songOpen })
+  },
+    el("span", { style: { fontSize: "14px", display: "inline-block", transform: state.songOpen ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" } }, "\u203a"),
+    state.songOpen ? "\u2190 HIDE SONG" : "BUILD YOUR SONG \u2192",
+    !state.songOpen ? el("span", { style: { color: "#252525", fontSize: "9px", marginLeft: "4px" } }, "ONE LINE \u00b7 AI BUILDS AROUND IT \u00b7 VERSE \u00b7 CHORUS \u00b7 BRIDGE") : null
+  );
+
+  // Song section
+  let songSection = null;
+  if (state.songOpen) {
+    const seedPanel = el("div", { style: { background: "#09090e", border: "1px solid #1e1e30", borderLeft: "3px solid #9a8aee", padding: "20px", marginBottom: "20px", animation: "slideDown 0.25s ease" } },
+      el("div", { style: { fontSize: "14px", color: "#9a8aee", fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", marginBottom: "4px" } }, "Your line"),
+      el("div", { style: { fontSize: "10px", color: "#38384a", lineHeight: "1.6", marginBottom: "12px" } }, "One line. A movie title. A headline. Something that won't leave you alone. Anything."),
+      el("textarea", { rows: 3, placeholder: '"She left her shoes at the bottom of the stairs"\n"Everything Burns Clean"', style: { width: "100%", background: "#060609", border: "1px solid #1a1a28", borderLeft: "2px solid #4a4a88", color: "#c8c4e8", padding: "12px 14px", fontSize: "14px", lineHeight: "1.8", fontFamily: "'Lora', serif", fontStyle: "italic", resize: "none", outline: "none", marginBottom: "14px" }, oninput: (e) => { state.seed = e.target.value; } }, state.seed),
+      el("div", { style: { fontSize: "9px", color: "#38384a", letterSpacing: "0.15em", marginBottom: "8px" } }, "THIS FEELS LIKE MY..."),
+      el("div", { style: { display: "flex", gap: "5px", flexWrap: "wrap", marginBottom: "14px" } },
+        ...["chorus","opening line","verse","bridge","outro","title","not sure"].map(role =>
+          el("button", {
+            style: { padding: "5px 12px", border: state.seedRole === role ? "1px solid #9a8aee" : "1px solid #1e1e30", background: state.seedRole === role ? "#9a8aee18" : "transparent", color: state.seedRole === role ? "#9a8aee" : "#3a3a5a", fontSize: "10px", fontFamily: "'DM Mono', monospace", cursor: "pointer", transition: "all 0.15s", textTransform: "uppercase" },
+            onclick: () => setState({ seedRole: state.seedRole === role ? null : role })
+          }, role)
+        )
+      ),
+      el("button", {
+        style: { padding: "10px 22px", background: state.seed.trim() && !state.seedBuilding ? "#9a8aee" : "#1a1a28", border: "none", color: state.seed.trim() && !state.seedBuilding ? "#08080e" : "#3a3a5a", fontSize: "11px", letterSpacing: "0.12em", cursor: state.seed.trim() && !state.seedBuilding ? "pointer" : "default", fontFamily: "'DM Mono', monospace" },
+        onclick: buildAroundSeed
+      }, state.seedBuilding ? "BUILDING..." : "\u2726 BUILD AROUND THIS"),
+      state.seedResult ? el("div", { style: { marginTop: "16px" } },
+        el("div", { style: { fontSize: "9px", color: "#6a6a9a", letterSpacing: "0.15em", marginBottom: "8px" } }, "CO-WRITER \u2014 built around your line"),
+        el("pre", { style: { color: "#9a96c8", fontSize: "13px", lineHeight: "1.9", fontFamily: "'Lora', serif", fontStyle: "italic", whiteSpace: "pre-wrap", margin: 0, borderLeft: "2px solid #2a2a48", paddingLeft: "14px" } }, state.seedResult),
+        el("button", { style: { marginTop: "10px", padding: "6px 14px", background: "transparent", border: "1px solid #2a2a48", color: "#5a5a8a", fontSize: "9px", cursor: "pointer", fontFamily: "'DM Mono', monospace" }, onclick: () => applyToSong(state.seedResult) }, "\u2193 APPLY TO SONG BELOW")
+      ) : null
+    );
+
+    const lyricSections = ["verse","prechorus","chorus","bridge","outro"].map(s =>
+      el("div", { style: { marginBottom: "10px" } },
+        el("div", { style: { fontSize: "9px", color: "#3a3a5a", letterSpacing: "0.12em", marginBottom: "4px" } }, s.toUpperCase()),
+        el("textarea", { rows: s === "chorus" ? 4 : 3, placeholder: s === "verse" ? "Set the scene..." : s === "chorus" ? "The emotional peak..." : s === "bridge" ? "The turn..." : s === "outro" ? "Resolution or fade..." : "Build the tension...", style: { width: "100%", background: "#0d0d0d", border: "1px solid #1a1a1a", borderLeft: `2px solid ${state.lyrics[s] ? "#3a3a6a" : "#1e1e1e"}`, color: "#ccc", padding: "9px 12px", fontSize: "13px", lineHeight: "1.7", fontFamily: "'Lora', serif", resize: "vertical", outline: "none" }, oninput: (e) => { state.lyrics[s] = e.target.value; } }, state.lyrics[s])
+      )
+    );
+
+    songSection = el("div", { style: { marginBottom: "28px", animation: "slideDown 0.25s ease" } }, seedPanel, ...lyricSections);
+  }
+
+  // Generate button
+  const generateBtn = el("div", { style: { marginBottom: "8px" } },
+    el("button", {
+      style: { width: "100%", padding: "16px", background: state.loading ? "#1a1a14" : "#c8a96e", border: "none", color: state.loading ? "#555" : "#080808", fontSize: "13px", letterSpacing: "0.15em", cursor: state.loading ? "default" : "pointer", fontFamily: "'DM Mono', monospace", fontWeight: "500" },
+      onclick: generatePrompt
+    }, state.loading ? "GENERATING..." : "GENERATE SUNO PROMPT")
+  );
+
+  // Output
+  let output = null;
+  if (state.generatedPrompt) {
+    const charCount = state.generatedPrompt.length;
+    const charColor = charCount > 950 ? "#e05555" : charCount > 800 ? "#e0a855" : "#5a8a5a";
+    output = el("div", { style: { marginTop: "24px", animation: "slideDown 0.3s ease" } },
+      el("div", { style: { background: "#0d0d0d", border: "1px solid #1a1a1a", borderLeft: "2px solid #c8a96e", padding: "18px", marginBottom: "10px" } },
+        el("div", { contenteditable: "true", style: { color: "#d4c4a0", fontSize: "14px", lineHeight: "1.8", fontFamily: "'Lora', serif", outline: "none" }, oninput: (e) => { state.generatedPrompt = e.textContent; } }, state.generatedPrompt)
+      ),
+      el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+        el("span", { style: { fontSize: "10px", color: charColor } }, `${charCount} / 950 chars`),
+        el("div", { style: { display: "flex", gap: "6px" } },
+          el("button", { style: { padding: "6px 12px", background: "transparent", border: "1px solid #1e1e1e", color: "#444", fontSize: "10px", cursor: "pointer", fontFamily: "'DM Mono', monospace" }, onclick: generatePrompt }, "\u21ba RETRY"),
+          el("button", {
+            style: { padding: "6px 18px", background: state.copied ? "#1a2a1a" : "#c8a96e", border: "none", color: state.copied ? "#5a9a5a" : "#080808", fontSize: "10px", cursor: "pointer", fontFamily: "'DM Mono', monospace" },
+            onclick: () => { navigator.clipboard.writeText(state.generatedPrompt); setState({ copied: true }); setTimeout(() => setState({ copied: false }), 2000); }
+          }, state.copied ? "\u2713 COPIED" : "COPY TO SUNO")
+        )
+      )
+    );
+  }
+
+  // Assemble
+  app.innerHTML = "";
+  app.appendChild(header);
+  main.appendChild(titleInput);
+  main.appendChild(themeInput);
+  main.appendChild(genreGrid);
+  main.appendChild(moodRow);
+  main.appendChild(vocalRow);
+  main.appendChild(songToggle);
+  if (songSection) main.appendChild(songSection);
+  main.appendChild(generateBtn);
+  if (output) main.appendChild(output);
+  app.appendChild(main);
+}
+
+render();
+</script>
+</body>
 </html>
+
