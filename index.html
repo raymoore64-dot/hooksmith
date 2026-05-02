@@ -204,7 +204,7 @@ async function generate(){
       })
     });
     var data=await res.json();
-    var text="Error generating prompt. Check your API key is set in Vercel.";
+    var text = (data.content?.[0]?.text || JSON.stringify(data)).trim();
     if(data.content&&data.content[0]&&data.content[0].text){text=data.content[0].text.trim();}
     var entry={id:Date.now(),title:S.title||"Untitled",genre:S.genre||"",prompt:text,rating:0,
       savedAt:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"2-digit"})};
