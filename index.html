@@ -197,7 +197,7 @@ async function generate(){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens:1000,
         system:"You are an expert Suno AI prompt writer. Output ONLY the prompt text, no preamble or explanation. Stay under 950 characters. No artist names. Map the full production arc: how the song opens, builds, peaks and ends. End with vocal descriptor.",
         messages:[{role:"user",content:"Generate a Suno prompt for:\n"+buildPromptContent()}]
