@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hooksmith - Write. Shape. Release.</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&family=Lora:ital,wght@0,400;1,400&family=Cormorant+Garamond:ital,wght@1,400&display=swap" rel="stylesheet">
+<style>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1510; color: #e8e0d0; font-family: 'DM Mono', monospace; min-height: 100vh; }
+textarea, input, select { box-sizing: border-box; font-family: inherit; }
+textarea::placeholder, input::placeholder { color: #6a5a40; }
+select option { background: #231e17; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #3a3020; }
+.header { background: #110e0a; border-bottom: 1px solid #2a2218; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+.header-logo { display: flex; align-items: center; gap: 10px; }
+.header-logo img { width: 42px; height: 42px; object-fit: contain; }
+.logo-text { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 22px; color: #c8a96e; letter-spacing: 0.02em; line-height: 1; }
+.logo-tag { font-size: 8px; letter-spacing: 0.22em; color: #4a3a20; margin-top: 3px; }
+.header-btns { display: flex; gap: 10px; }
+.hbtn { background: none; border: none; color: #5a4a30; font-size: 10px; cursor: pointer; letter-spacing: 0.1em; font-family: 'DM Mono', monospace; transition: color 0.15s; padding: 4px 8px; }
+.hbtn:hover, .hbtn.active { color: #c8a96e; }
+.main { max-width: 680px; margin: 0 auto; padding: 36px 20px 60px; }
+.title-input { width: 100%; background: transparent; border: none; border-bottom: 2px solid #2a2218; color: #e8e0d0; padding: 10px 0; font-size: 20px; font-family: 'Lora', serif; outline: none; margin-bottom: 14px; transition: border-color 0.2s; }
+.title-input:focus { border-bottom-color: #c8a96e; }
+.title-input::placeholder { color: #4a3a20; }
+.theme-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #2a2218; color: #9a8a6a; padding: 8px 0; font-size: 15px; font-family: 'Lora', serif; resize: none; outline: none; margin-bottom: 28px; transition: border-color 0.2s; }
+.theme-input:focus { border-bottom-color: #c8a96e; }
+.theme-input::placeholder { color: #4a3a20; }
+.slabel { font-size: 9px; color: #6a5a40; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 12px; }
+.genre-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 24px; }
+.gtile { background: #231e17; border: 1px solid #2a2218; padding: 12px 10px; cursor: pointer; text-align: left; transition: all 0.15s; border-radius: 3px; }
+.gtile:hover, .gtile.sel { border-color: #c8a96e; background: #2a2218; }
+.gtile.sel .glabel { color: #c8a96e; }
+.gicon { font-size: 18px; color: #c8a96e; margin-bottom: 5px; }
+.glabel { font-size: 12px; color: #c8b890; font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+.ghint { font-size: 9px; color: #4a3a20; line-height: 1.3; }
+.gtile.sel .ghint { color: #6a5a40; }
+.mood-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.mpill { padding: 8px 18px; border: 1px solid #2a2218; background: #231e17; font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all 0.15s; border-radius: 20px; color: #6a5a40; }
+.mpill:hover { border-color: #c8a96e; color: #c8a96e; }
+.vocal-row { display: flex; gap: 8px; margin-bottom: 32px; }
+.vbtn { flex: 1; padding: 10px 8px; border: 1px solid #2a2218; background: #231e17; color: #6a5a40; font-size: 11px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all 0.15s; border-radius: 3px; }
+.vbtn:hover { border-color: #c8956e; color: #c8956e; }
+.vbtn.sel { border-color: #c8956e; background: #2a1e14; color: #c8956e; }
+.etoggle { background: none; border: none; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; letter-spacing: 0.15em; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding: 0; transition: color 0.2s; }
+.earrow { font-size: 14px; display: inline-block; transition: transform 0.2s; }
+.ehint { color: #3a2a18; font-size: 9px; margin-left: 4px; }
+.seed-panel { background: #12100e; border: 1px solid #2a2230; border-left: 3px solid #9a8aee; padding: 20px; margin-bottom: 20px; border-radius: 3px; }
+.seed-title { font-size: 16px; color: #9a8aee; font-family: 'Cormorant Garamond', serif; font-style: italic; margin-bottom: 4px; }
+.seed-desc { font-size: 10px; color: #4a4060; line-height: 1.6; margin-bottom: 12px; }
+.seed-ta { width: 100%; background: #0e0c0a; border: 1px solid #2a2230; border-left: 2px solid #9a8aee; color: #c8c4e8; padding: 12px 14px; font-size: 14px; line-height: 1.8; font-family: 'Lora', serif; font-style: italic; resize: none; outline: none; margin-bottom: 14px; border-radius: 2px; }
+.seed-rlabel { font-size: 9px; color: #4a4060; letter-spacing: 0.15em; margin-bottom: 8px; }
+.seed-roles { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+.srole { padding: 5px 12px; border: 1px solid #2a2230; background: transparent; color: #4a4060; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all 0.15s; text-transform: uppercase; border-radius: 2px; }
+.srole:hover, .srole.sel { border-color: #9a8aee; background: #1a1828; color: #9a8aee; }
+.sbuild { padding: 10px 22px; background: #9a8aee; border: none; color: #0e0c18; font-size: 11px; letter-spacing: 0.12em; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 3px; transition: background 0.2s; }
+.sbuild:hover { background: #b0a0ff; }
+.sbuild:disabled { background: #2a2840; color: #4a4060; cursor: default; }
+.sresult { margin-top: 16px; }
+.srlabel { font-size: 9px; color: #6a6090; letter-spacing: 0.15em; margin-bottom: 8px; }
+.srtext { color: #9a96c8; font-size: 13px; line-height: 1.9; font-family: 'Lora', serif; font-style: italic; white-space: pre-wrap; margin: 0; border-left: 2px solid #2a2840; padding-left: 14px; }
+.applybtn { margin-top: 10px; padding: 6px 14px; background: transparent; border: 1px solid #2a2840; color: #6a6090; font-size: 9px; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 2px; }
+.applybtn:hover { border-color: #9a8aee; color: #9a8aee; }
+.llabel { font-size: 9px; color: #6a5a40; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+.lta { width: 100%; background: #231e17; border: 1px solid #2a2218; border-left: 2px solid #2a2218; color: #c8b890; padding: 9px 12px; font-size: 13px; line-height: 1.7; font-family: 'Lora', serif; resize: vertical; outline: none; transition: border-color 0.2s; border-radius: 2px; margin-bottom: 10px; }
+.lta:focus { border-left-color: #9a8aee; }
+.lta.hc { border-left-color: #4a4060; }
+.genbtn { width: 100%; padding: 16px; background: #c8a96e; border: none; color: #110e0a; font-size: 13px; letter-spacing: 0.15em; cursor: pointer; font-family: 'DM Mono', monospace; font-weight: 500; border-radius: 3px; transition: all 0.2s; margin-bottom: 8px; }
+.genbtn:hover:not(:disabled) { background: #d4b87a; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(200,169,110,0.25); }
+.genbtn:disabled { background: #2a2218; color: #4a3a20; cursor: default; }
+.gstatus { font-size: 9px; color: #3a2a18; letter-spacing: 0.1em; margin-bottom: 24px; text-align: center; }
+.outbox { background: #231e17; border: 1px solid #2a2218; border-left: 3px solid #c8a96e; padding: 18px; margin-bottom: 10px; border-radius: 3px; }
+.outtext { color: #e8d4a8; font-size: 14px; line-height: 1.8; font-family: 'Lora', serif; outline: none; min-height: 60px; }
+.outfooter { display: flex; justify-content: space-between; align-items: center; }
+.retrybtn { padding: 7px 14px; background: transparent; border: 1px solid #2a2218; color: #6a5a40; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 3px; }
+.retrybtn:hover { border-color: #c8a96e; color: #c8a96e; }
+.copybtn { padding: 7px 18px; background: #c8a96e; border: none; color: #110e0a; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 3px; transition: all 0.2s; }
+.copybtn.copied { background: #3a6a3a; color: #90c890; }
+.panel { background: #231e17; border: 1px solid #2a2218; padding: 20px; margin-bottom: 24px; border-radius: 6px; }
+.ptitle { font-size: 9px; color: #6a5a40; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 14px; }
+.hitem { background: #1a1510; border: 1px solid #2a2218; border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; }
+.hitop { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.htitle { font-size: 13px; color: #c8b890; font-family: 'Lora', serif; font-style: italic; }
+.hcluster { font-size: 9px; color: #c8956e; margin-left: 8px; }
+.hprev { font-size: 11px; color: #4a3a20; font-family: 'Lora', serif; line-height: 1.5; margin-top: 4px; }
+.ubtn { padding: 2px 10px; background: transparent; border: 1px solid #2a2218; color: #6a5a40; font-size: 9px; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 2px; }
+.ubtn:hover { border-color: #c8a96e; color: #c8a96e; }
+.dbtn { background: none; border: none; color: #3a2a18; font-size: 11px; cursor: pointer; padding: 0 4px; }
+.dbtn:hover { color: #e05555; }
+.stars { display: flex; gap: 3px; align-items: center; margin-top: 4px; }
+.star { background: none; border: none; cursor: pointer; font-size: 14px; padding: 1px; transition: color 0.1s; }
+.minput { width: 100%; background: #1a1510; border: 1px solid #2a2218; color: #c8b890; padding: 8px 10px; font-size: 12px; outline: none; border-radius: 2px; font-family: 'DM Mono', monospace; }
+.msel { width: 100%; background: #1a1510; border: 1px solid #2a2218; color: #c8b890; padding: 8px 10px; font-size: 11px; cursor: pointer; border-radius: 2px; font-family: 'DM Mono', monospace; }
+.mta { width: 100%; background: #1a1510; border: 1px solid #2a2218; color: #c8b890; padding: 10px; font-size: 12px; line-height: 1.6; font-family: 'Lora', serif; resize: vertical; outline: none; margin-bottom: 8px; border-radius: 2px; }
+.savebtn { padding: 8px 20px; background: #7a9e8a; border: none; color: #0a1410; font-size: 10px; cursor: pointer; font-family: 'DM Mono', monospace; border-radius: 3px; }
+.savebtn:disabled { background: #1a2218; color: #3a4a3a; cursor: default; }
+.flash { font-size: 10px; color: #5a9a5a; margin-left: 10px; }
+.dpanel { background: #12100e; border: 1px solid #2a2218; border-left: 2px solid #4a3a20; padding: 18px; margin-bottom: 20px; border-radius: 3px; }
+.dlabel { font-size: 9px; color: #4a3a20; letter-spacing: 0.18em; margin-bottom: 16px; }
+.dstitle { font-size: 9px; color: #6a5a40; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; margin-top: 14px; }
+.dtags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.dtag { padding: 4px 10px; border: 1px solid #2a2218; background: transparent; color: #4a3a20; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all 0.15s; border-radius: 2px; }
+.dtag:hover, .dtag.sel { border-color: #c8a96e; color: #c8a96e; background: #2a2218; }
+.dinputs { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px; }
+.dinput { background: #1a1510; border: 1px solid #2a2218; color: #c8b890; padding: 7px 10px; font-size: 12px; outline: none; border-radius: 2px; font-family: 'DM Mono', monospace; width: 100%; }
+.dsel { background: #1a1510; border: 1px solid #2a2218; color: #c8b890; padding: 7px 10px; font-size: 11px; cursor: pointer; border-radius: 2px; font-family: 'DM Mono', monospace; width: 100%; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var LOGO_SRC = 'data:image/webp;base64,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';
+var PROXY = '/.netlify/functions/claude';
+
+var GENRES = [
+  {id:'Ballad',label:'Ballad',icon:'♥',hint:'Tender, emotional, piano or strings'},
+  {id:'Pop',label:'Pop',icon:'◉',hint:'Catchy, warm, anthemic'},
+  {id:'Folk',label:'Folk',icon:'◎',hint:'Acoustic, gentle, storytelling'},
+  {id:'Country',label:'Country',icon:'➶',hint:'Heartfelt, roots, open roads'},
+  {id:'Rock',label:'Rock',icon:'▓',hint:'From tender acoustic to powerful'},
+  {id:'Electronic',label:'Electronic',icon:'◈',hint:'Modern, atmospheric, beats'},
+  {id:'Hip-Hop',label:'Hip-Hop',icon:'⊕',hint:'Spoken from the heart, rhythmic'},
+  {id:'Cinematic',label:'Cinematic',icon:'⊘',hint:'Something different, unique, yours'}
+];
+var MOODS = [
+  {id:'Dark',color:'#6a5aaa'},
+  {id:'Warm',color:'#c8784e'},
+  {id:'Euphoric',color:'#a89020'},
+  {id:'Melancholic',color:'#4a8a6a'},
+  {id:'Raw',color:'#a07830'}
+];
+var VOCALS = ['Female','Male','Duo','Instrumental'];
+var SEED_ROLES = ['chorus','opening line','verse','bridge','outro','title','not sure'];
+var LYRIC_IDS = ['verse','prechorus','chorus','bridge','outro'];
+var LYRIC_LABELS = ['Verse','Pre-Chorus','Chorus','Bridge','Outro'];
+var LYRIC_PLACEHOLDERS = ['Set the scene...','Build the tension...','The emotional peak...','The turn...','Resolution or fade...'];
+var CLUSTERS = ['Ballad','Electronic','Folk','Rock','Hip-Hop','Country','Cinematic','Pop','My Prompts'];
+var DEEP_GENRES = ['Country Rock','Country Ballad','Indie Rock','Alternative Rock','Sludge Metal','Progressive Rock','Piano Ballad','Liquid Drum & Bass','Deep Electronic','Ambient','Blues Rock','Post-Rock','Psychedelic Soul','Spoken Word Electronic','Singer-Songwriter','Gospel','Dark Folk','Shoegaze'];
+var DEEP_MOODS = ['Longing','Euphoric','Melancholic','Defiant','Tender','Aching','Hopeful','Devotional','Haunted','Meditative','Triumphant','Bittersweet','Restless','Serene'];
+var DEEP_INSTRUMENTS = ['Acoustic Guitar','Electric Guitar','12-String Guitar','Mandolin','Piano','Organ','Synthesizer','Strings','Pedal Steel','Drums','Electronic Drums','Bass','Cello','Violin','Lap Steel','Banjo','Harmonica','Trumpet','Ambient Pads'];
+var DEEP_ERAS = ['Late 60s','Early 70s','Late 70s','Early 80s','Mid 80s','Late 80s','Early 90s','Mid 90s','Late 90s','Early 2000s','2010s','Contemporary','Timeless'];
+var DEEP_VOCALS = ['Female - warm, unguarded','Female - breathy, intimate','Female - fractured, never oversinging','Female - theatrical, whisper to full declamation','Female - sultry mezzo, half-sung','Female - weathered, searching','Female - fragile, often wordless','Female - Scottish, laconic swagger','Male - introspective, plain-spoken','Male - Scots accent, intimate','Male - spoken word, urban','Male - bellowing, broken','Duet - male/female','Choir - gospel, restrained','Instrumental only'];
+var KEYS = ['','A major','A minor','Bb major','Bb minor','B major','B minor','C major','C minor','C# minor','D major','D minor','Eb major','Eb minor','E major','E minor','F major','F minor','F# minor','G major','G minor','Ab major','Ab minor','Drop B','Drop C','Drop D','Modal / open','Rubato / atonal'];
+var STAR_COLORS = ['#2a2218','#e05555','#e09455','#e0c855','#a0c855','#5ac855'];
+var STAR_LABELS = ['','weak','fair','good','great','perfect'];
+
+
+var state = {
+  title:'', theme:'', genre:null, mood:null, vocal:null,
+  seed:'', seedRole:null, songOpen:false, deepOpen:false,
+  deepGenres:[], deepMoods:[], deepInstruments:[], deepEra:[], deepVocal:'',
+  bpm:'', songKey:'', timeSig:'',
+  lyrics:{verse:'',prechorus:'',chorus:'',bridge:'',outro:''},
+  generatedPrompt:'', loading:false, copied:false,
+  seedResult:null, seedBuilding:false,
+  history:[], myPrompts:[],
+  showHistory:false, showMine:false,
+  newTitle:'', newCluster:'My Prompts', newText:'', savedFlash:false
+};
+
+try { var _h = localStorage.getItem('hs-history'); if(_h) state.history = JSON.parse(_h); } catch(e){}
+try { var _p = localStorage.getItem('hs-prompts'); if(_p) state.myPrompts = JSON.parse(_p); } catch(e){}
+
+function save() {
+  try { localStorage.setItem('hs-history', JSON.stringify(state.history.slice(0,50))); } catch(e){}
+  try { localStorage.setItem('hs-prompts', JSON.stringify(state.myPrompts)); } catch(e){}
+}
+
+function set(u) { Object.assign(state, u); render(); }
+
+function mk(tag, cls, attrs, kids) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (attrs) Object.keys(attrs).forEach(function(k) {
+    var v = attrs[k];
+    if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+    else if (k.indexOf('on') === 0) e[k.toLowerCase()] = v;
+    else e.setAttribute(k, v);
+  });
+  if (kids) kids.forEach(function(c) {
+    if (c == null || c === false) return;
+    e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  });
+  return e;
+}
+
+function txt(t) { return document.createTextNode(t); }
+
+function dtoggle(arr, val) {
+  var i = arr.indexOf(val);
+  if (i >= 0) arr.splice(i,1); else arr.push(val);
+}
+
+function buildContent() {
+  var genre = (state.deepOpen && state.deepGenres.length > 0) ? state.deepGenres.join(', ') : (state.genre || 'unspecified');
+  var mood = (state.deepOpen && state.deepMoods.length > 0) ? state.deepMoods.join(', ') : (state.mood || 'unspecified');
+  var vocal = (state.deepOpen && state.deepVocal) ? state.deepVocal : (state.vocal ? state.vocal + ' vocal' : 'unspecified');
+  var lines = [
+    'Title: ' + (state.title || 'Untitled'),
+    'Genre: ' + genre,
+    'Mood: ' + mood,
+    'Vocal: ' + vocal,
+    'Theme: ' + (state.theme || 'none')
+  ];
+  if (state.deepOpen && state.deepInstruments.length > 0) lines.push('Instruments: ' + state.deepInstruments.join(', '));
+  if (state.deepOpen && state.deepEra.length > 0) lines.push('Era: ' + state.deepEra.join(', '));
+  if (state.bpm) lines.push('BPM: ' + state.bpm);
+  if (state.songKey) lines.push('Key: ' + state.songKey);
+  if (state.timeSig) lines.push('Time: ' + state.timeSig);
+  var result = lines.join('\n');
+  if (state.seed) result += '\n\nSeed line (sacred, build around it): "' + state.seed + '"';
+  var lyr = LYRIC_IDS.filter(function(id) { return state.lyrics[id].trim(); }).map(function(id,i) { return '[' + LYRIC_LABELS[i] + ']\n' + state.lyrics[id]; }).join('\n\n');
+  if (lyr) result += '\n\nLyrics:\n' + lyr;
+  return result;
+}
+
+function generate() {
+  if (state.loading) return;
+  set({loading:true, generatedPrompt:''});
+  fetch(PROXY, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 1000,
+      system: 'You are an expert Suno AI prompt writer. Output ONLY the prompt text, no preamble. Stay under 950 characters. No artist names. Map the full production arc. End with vocal descriptor.',
+      messages: [{role:'user', content:'Generate a Suno prompt for:\n\n' + buildContent()}]
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    var text = (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : JSON.stringify(d);
+    var entry = {id:Date.now(), title:state.title||'Untitled', genre:state.genre||'', mood:state.mood||'', prompt:text, rating:0, savedAt:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'})};
+    state.history = [entry].concat(state.history).slice(0,50);
+    save();
+    set({loading:false, generatedPrompt:text});
+  }).catch(function() {
+    set({loading:false, generatedPrompt:'Connection error. Please try again.'});
+  });
+}
+
+function buildSeed() {
+  if (!state.seed.trim() || state.seedBuilding) return;
+  set({seedBuilding:true, seedResult:null});
+  var genre = state.genre || 'unspecified';
+  var mood = state.mood || 'unspecified';
+  var content = 'My seed line: "' + state.seed + '"\nThis feels like my: ' + (state.seedRole || 'unknown') + '\nGenre: ' + genre + '\nMood: ' + mood + '\nTheme: ' + (state.theme || 'none') + '\n\nBuild the rest of the song around my line.';
+  fetch(PROXY, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-5',
+      max_tokens:1000,
+      system:'You are a skilled co-writer. The seed line is sacred - never rewrite or replace it. Build the song around it. Use section labels [Verse], [Chorus], [Bridge] etc. 2-4 lines per section. End with one sentence explaining the emotional logic.',
+      messages:[{role:'user', content:content}]
+    })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    var text = (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : 'Error';
+    set({seedBuilding:false, seedResult:text});
+  }).catch(function() {
+    set({seedBuilding:false, seedResult:'Error. Please try again.'});
+  });
+}
+
+function applyToSong(text) {
+  var secs = {verse:'',prechorus:'',chorus:'',bridge:'',outro:''};
+  var cur = null;
+  text.split('\n').forEach(function(line) {
+    var l = line.toLowerCase();
+    if (l.indexOf('[verse]') >= 0) { cur='verse'; return; }
+    if (l.indexOf('[pre-chorus]') >= 0 || l.indexOf('[prechorus]') >= 0) { cur='prechorus'; return; }
+    if (l.indexOf('[chorus]') >= 0) { cur='chorus'; return; }
+    if (l.indexOf('[bridge]') >= 0) { cur='bridge'; return; }
+    if (l.indexOf('[outro]') >= 0) { cur='outro'; return; }
+    if (cur && line.trim()) secs[cur] += (secs[cur] ? '\n' : '') + line;
+  });
+  var nl = Object.assign({}, state.lyrics);
+  Object.keys(secs).forEach(function(k) { if (secs[k].trim() && !nl[k]) nl[k] = secs[k].trim(); });
+  set({lyrics:nl});
+}
+
+
+function render() {
+  var app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = '';
+
+  // HEADER
+  var hdr = mk('div','header',null,[
+    mk('div','header-logo',null,[
+      mk('img',null,{src:LOGO_SRC, alt:'Hooksmith', style:{width:'42px',height:'42px',objectFit:'contain'}}),
+      mk('div',null,null,[
+        mk('div','logo-text',null,['Hooksmith']),
+        mk('div','logo-tag',null,['WRITE. SHAPE. RELEASE.'])
+      ])
+    ]),
+    mk('div','header-btns',null,[
+      mk('button','hbtn' + (state.showHistory?' active':''),{onclick:function(){ set({showHistory:!state.showHistory,showMine:false}); }},['HISTORY' + (state.history.length > 0 ? ' ('+state.history.length+')' : '')]),
+      mk('button','hbtn' + (state.showMine?' active':''),{onclick:function(){ set({showMine:!state.showMine,showHistory:false}); }},['MY PROMPTS' + (state.myPrompts.length > 0 ? ' ('+state.myPrompts.length+')' : '')])
+    ])
+  ]);
+
+  var main = mk('div','main');
+
+  // HISTORY
+  if (state.showHistory) {
+    var hitems = state.history.length === 0 ? [mk('div',null,{style:{color:'#4a3a20',fontSize:'13px'}},['No history yet'])] :
+      state.history.map(function(entry) {
+        var r = entry.rating || 0;
+        return mk('div','hitem',null,[
+          mk('div','hitop',null,[
+            mk('span',null,null,[mk('span','htitle',null,[entry.title]), entry.genre ? mk('span','hcluster',null,[entry.genre]) : null]),
+            mk('div',null,{style:{display:'flex',gap:'6px',alignItems:'center'}},[
+              mk('button','ubtn',{onclick:function(){ set({generatedPrompt:entry.prompt,showHistory:false}); }},['USE']),
+              mk('button','dbtn',{onclick:function(){ state.history=state.history.filter(function(x){return x.id!==entry.id;}); save(); set({}); }},['x'])
+            ])
+          ]),
+          mk('div','stars',null,
+            [1,2,3,4,5].map(function(n){
+              return mk('button','star',{style:{color: n<=r ? STAR_COLORS[r] : '#2a2218'},onclick:function(){ state.history=state.history.map(function(x){ return x.id===entry.id ? Object.assign({},x,{rating:x.rating===n?0:n}) : x; }); save(); set({}); }},['★']);
+            }).concat([r > 0 ? mk('span',null,{style:{fontSize:'9px',color:STAR_COLORS[r],marginLeft:'4px',fontFamily:"'DM Mono',monospace"}},[STAR_LABELS[r]]) : null])
+          ),
+          mk('div','hprev',null,[entry.prompt.slice(0,140)+'…'])
+        ]);
+      });
+    var clearBtn = mk('button',null,{style:{marginTop:'8px',padding:'5px 12px',background:'transparent',border:'1px solid #2a2218',color:'#4a3a20',fontSize:'9px',cursor:'pointer',fontFamily:"'DM Mono',monospace",borderRadius:'2px'},onclick:function(){state.history=[];save();set({});}},['CLEAR ALL']);
+    main.appendChild(mk('div','panel',null,[mk('div','ptitle',null,['HISTORY'])].concat(hitems).concat([clearBtn])));
+  }
+
+  // MY PROMPTS
+  if (state.showMine) {
+    var sel = mk('select','msel',{onchange:function(e){state.newCluster=e.target.value;}});
+    CLUSTERS.forEach(function(c){ var o=mk('option',null,{value:c},[c]); if(c===state.newCluster) o.selected=true; sel.appendChild(o); });
+    var mineItems = [
+      mk('div',null,{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}},[
+        mk('input','minput',{type:'text',placeholder:'Title...',value:state.newTitle,oninput:function(e){state.newTitle=e.target.value;}}),
+        sel
+      ]),
+      mk('textarea','mta',{rows:'4',placeholder:'Paste a Suno prompt that worked well...',oninput:function(e){state.newText=e.target.value;}},[state.newText]),
+      mk('div',null,{style:{display:'flex',alignItems:'center',gap:'10px'}},[
+        mk('button','savebtn',{onclick:function(){
+          if(!state.newText.trim()) return;
+          state.myPrompts=[{id:Date.now(),title:state.newTitle||'Untitled',cluster:state.newCluster,text:state.newText,savedAt:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'})}].concat(state.myPrompts);
+          save(); set({newText:'',newTitle:'',savedFlash:true});
+          setTimeout(function(){set({savedFlash:false});},1800);
+        }},['SAVE']),
+        state.savedFlash ? mk('span','flash',null,['✓ saved']) : null
+      ])
+    ].concat(state.myPrompts.map(function(p){
+      return mk('div','hitem',{style:{marginTop:'6px'}},[ mk('div','hitop',null,[mk('span',null,null,[mk('span','htitle',null,[p.title]),mk('span','hcluster',null,[p.cluster])]), mk('button','dbtn',{onclick:function(){state.myPrompts=state.myPrompts.filter(function(x){return x.id!==p.id;});save();set({});}},['×'])]) ]);
+    }));
+    main.appendChild(mk('div','panel',null,[mk('div','ptitle',null,['MY PROMPT BANK'])].concat(mineItems)));
+  }
+
+  // TITLE + THEME
+  main.appendChild(mk('input',null,{type:'text',className:'title-input',placeholder:'What do you want to call it? (optional)',value:state.title,oninput:function(e){state.title=e.target.value;}}));
+  main.appendChild(mk('textarea',null,{className:'theme-input',rows:'2',placeholder:'Who is it for? What do you want to say to them? (optional)',oninput:function(e){state.theme=e.target.value;}},[state.theme]));
+
+  // GENRE
+  main.appendChild(mk('div','slabel',null,['GENRE']));
+  main.appendChild(mk('div','genre-grid',null, GENRES.map(function(g){
+    return mk('button','gtile'+(state.genre===g.id?' sel':''),{onclick:function(){set({genre:state.genre===g.id?null:g.id});}},[ mk('div','gicon',null,[g.icon]), mk('div','glabel',null,[g.label]), mk('div','ghint',null,[g.hint]) ]);
+  })));
+
+  // MOOD
+  main.appendChild(mk('div','slabel',null,['MOOD']));
+  main.appendChild(mk('div','mood-row',null, MOODS.map(function(m){
+    var sel = state.mood === m.id;
+    return mk('button','mpill'+(sel?' sel':''),{style:sel?{background:m.color,borderColor:m.color,color:'#fff'}:{},onclick:function(){set({mood:state.mood===m.id?null:m.id});}},[ m.id ]);
+  })));
+
+  // VOCAL
+  main.appendChild(mk('div','slabel',null,['VOCAL']));
+  main.appendChild(mk('div','vocal-row',null, VOCALS.map(function(v){
+    return mk('button','vbtn'+(state.vocal===v?' sel':''),{onclick:function(){set({vocal:state.vocal===v?null:v});}},[ v ]);
+  })));
+
+  // BUILD YOUR SONG
+  main.appendChild(mk('button','etoggle',{style:{color:state.songOpen?'#9a8aee':'#3a2a18'},onclick:function(){set({songOpen:!state.songOpen});}},[ mk('span','earrow',{style:{transform:state.songOpen?'rotate(90deg)':'rotate(0deg)'}},[ '›' ]), state.songOpen ? '← HIDE SONG' : 'BUILD YOUR SONG →', !state.songOpen ? mk('span','ehint',null,['ONE LINE · AI BUILDS AROUND IT · VERSE · CHORUS']) : null ]));
+
+  if (state.songOpen) {
+    var seedKids = [
+      mk('div','seed-title',null,['Your line']),
+      mk('div','seed-desc',null,["One line. A movie title. A headline. Something that won't leave you alone."]),
+      mk('textarea','seed-ta',{rows:'3',placeholder:'"She left her shoes at the bottom of the stairs"',oninput:function(e){state.seed=e.target.value;}},[state.seed]),
+      mk('div','seed-rlabel',null,['THIS FEELS LIKE MY...']),
+      mk('div','seed-roles',null, SEED_ROLES.map(function(role){ return mk('button','srole'+(state.seedRole===role?' sel':''),{onclick:function(){set({seedRole:state.seedRole===role?null:role});}},[ role ]); })),
+      mk('button','sbuild',{disabled:(!state.seed.trim()||state.seedBuilding)||undefined,onclick:buildSeed},[ state.seedBuilding ? 'BUILDING...' : '✦ BUILD AROUND THIS' ])
+    ];
+    if (state.seedResult) {
+      seedKids = seedKids.concat([ mk('div','sresult',null,[ mk('div','srlabel',null,['CO-WRITER — built around your line']), mk('pre','srtext',null,[state.seedResult]), mk('button','applybtn',{onclick:function(){applyToSong(state.seedResult);}},['↓ APPLY TO SONG BELOW']) ]) ]);
+    }
+    main.appendChild(mk('div','seed-panel',null, seedKids));
+    main.appendChild(mk('div','slabel',{style:{marginBottom:'10px'}},['FULL SONG — edit freely']));
+    LYRIC_IDS.forEach(function(id,i){
+      main.appendChild(mk('div',null,null,[ mk('div','llabel',null,[LYRIC_LABELS[i]]), mk('textarea','lta'+(state.lyrics[id]?' hc':''),{rows:id==='chorus'?'4':'3',placeholder:LYRIC_PLACEHOLDERS[i],oninput:function(e){state.lyrics[id]=e.target.value;}},[state.lyrics[id]]) ]));
+    });
+  }
+
+  // GO DEEPER
+  main.appendChild(mk('button','etoggle',{style:{color:state.deepOpen?'#c8a96e':'#3a2a18',marginTop:'8px'},onclick:function(){set({deepOpen:!state.deepOpen});}},[ mk('span','earrow',{style:{transform:state.deepOpen?'rotate(90deg)':'rotate(0deg)'}},[ '›' ]), state.deepOpen ? '← KEEP IT SIMPLE' : 'GO DEEPER →', !state.deepOpen ? mk('span','ehint',null,['BPM · KEY · INSTRUMENTS · ERA']) : null ]));
+
+  if (state.deepOpen) {
+    function makeDeepSel(opts, val, onch) {
+      var s = mk('select','dsel',{onchange:onch});
+      opts.forEach(function(o){ var opt=mk('option',null,{value:o},[o||'-- select']); if(o===val) opt.selected=true; s.appendChild(opt); });
+      return s;
+    }
+    var deepKids = [
+      mk('div','dlabel',null,['SIMPLE BY DEFAULT · DEEP ON DEMAND']),
+      mk('div','dstitle',null,['Vocal Detail']),
+      mk('div','dtags',null, DEEP_VOCALS.map(function(v){ return mk('button','dtag'+(state.deepVocal===v?' sel':''),{onclick:function(){set({deepVocal:state.deepVocal===v?'':v});}},[ v ]); })),
+      mk('div','dstitle',null,['Genre Detail']),
+      mk('div','dtags',null, DEEP_GENRES.map(function(g){ return mk('button','dtag'+(state.deepGenres.indexOf(g)>=0?' sel':''),{onclick:function(){dtoggle(state.deepGenres,g);set({});}},[ g ]); })),
+      mk('div','dstitle',null,['Mood Detail']),
+      mk('div','dtags',null, DEEP_MOODS.map(function(m){ return mk('button','dtag'+(state.deepMoods.indexOf(m)>=0?' sel':''),{onclick:function(){dtoggle(state.deepMoods,m);set({});}},[ m ]); })),
+      mk('div','dstitle',null,['Instruments']),
+      mk('div','dtags',null, DEEP_INSTRUMENTS.map(function(i){ return mk('button','dtag'+(state.deepInstruments.indexOf(i)>=0?' sel':''),{onclick:function(){dtoggle(state.deepInstruments,i);set({});}},[ i ]); })),
+      mk('div','dstitle',null,['Era']),
+      mk('div','dtags',null, DEEP_ERAS.map(function(e){ return mk('button','dtag'+(state.deepEra.indexOf(e)>=0?' sel':''),{onclick:function(){dtoggle(state.deepEra,e);set({});}},[ e ]); })),
+      mk('div','dstitle',null,['Key / BPM / Time']),
+      mk('div','dinputs',null,[
+        mk('input','dinput',{type:'text',placeholder:'BPM',value:state.bpm,oninput:function(e){state.bpm=e.target.value.replace(/[^0-9]/g,'').slice(0,3);}}),
+        makeDeepSel(KEYS, state.songKey, function(e){state.songKey=e.target.value;}),
+        makeDeepSel(['','4/4','3/4','6/8','5/4','7/8','7/4','Shifting','Rubato'], state.timeSig, function(e){state.timeSig=e.target.value;})
+      ])
+    ];
+    main.appendChild(mk('div','dpanel',null, deepKids));
+  }
+
+  // GENERATE
+  main.appendChild(mk('button','genbtn',{disabled:state.loading||undefined,onclick:generate},[ state.loading ? 'GENERATING...' : 'GENERATE SUNO PROMPT' ]));
+  main.appendChild(mk('div','gstatus',null,[ state.genre ? state.genre + (state.mood?' · '+state.mood:'') + (state.vocal?' · '+state.vocal:'') + (state.seed?' · seed active':'') : 'choose a genre above, or just generate' ]));
+
+  // OUTPUT
+  if (state.generatedPrompt) {
+    var cc = state.generatedPrompt.length;
+    var ccColor = cc > 950 ? '#e05555' : cc > 800 ? '#e09455' : '#5a9a5a';
+    main.appendChild(mk('div',null,null,[
+      mk('div','outbox',null,[ mk('div','outtext',{contenteditable:'true',oninput:function(e){state.generatedPrompt=e.textContent;}},[state.generatedPrompt]) ]),
+      mk('div','outfooter',null,[
+        mk('span',null,{style:{fontSize:'10px',color:ccColor}},[cc + ' / 950 chars']),
+        mk('div','output-btns',null,[
+          mk('button','retrybtn',{onclick:generate},['↺ RETRY']),
+          mk('button','copybtn'+(state.copied?' copied':''),{onclick:function(){ navigator.clipboard.writeText(state.generatedPrompt); set({copied:true}); setTimeout(function(){set({copied:false});},2000); }},[state.copied ? '✓ COPIED' : 'COPY TO SUNO'])
+        ])
+      ])
+    ]));
+  }
+
+  app.appendChild(hdr);
+  app.appendChild(main);
+}
+
+render();
+
+</script>
+</body>
+</html>
